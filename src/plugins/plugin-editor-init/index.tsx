@@ -12,7 +12,7 @@ const EditorInitPlugin = (ctx: IPublicModelPluginContext) => {
       // 设置物料描述
       await material.setAssets(await injectAssets(assets));
 
-      const schema = await getProjectSchema(scenarioName + editorWindow.resource?.options.id);
+      const schema = await getProjectSchema(scenarioName, editorWindow.resource?.options.id);
       // 加载 schema
       project.importSchema(schema as any);
     },

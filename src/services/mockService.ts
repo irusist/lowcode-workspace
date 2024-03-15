@@ -114,8 +114,8 @@ export const getPackagesFromLocalStorage = (scenarioName: string, id: string) =>
   return JSON.parse(window.localStorage.getItem(getLSName(scenarioName, id, 'packages')) || '{}');
 }
 
-export const getProjectSchema = async (scenarioName: string = 'unknown') : Promise<IPublicTypeProjectSchema> => {
-  const pageSchema = await getPageSchema(scenarioName);
+export const getProjectSchema = async (scenarioName: string = 'unknown', id : string) : Promise<IPublicTypeProjectSchema> => {
+  const pageSchema = await getPageSchema(scenarioName, id);
   return generateProjectSchema(pageSchema, DefaultI18nSchema);
 };
 

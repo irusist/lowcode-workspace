@@ -1,5 +1,13 @@
 import ReactDOM from 'react-dom';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  HashRouter as Router,
+  Route,
+  Routes,
+  Link,
+  useParams,
+  useNavigate,
+} from 'react-router-dom'
 import { Loading, Shell, Search, Nav } from '@alifd/next';
 import mergeWith from 'lodash/mergeWith';
 import isArray from 'lodash/isArray';
@@ -8,6 +16,8 @@ import ReactRenderer from '@alilc/lowcode-react-renderer';
 import { injectComponents } from '@alilc/lowcode-plugin-inject';
 import appHelper from './appHelper';
 import { getProjectSchemaFromLocalStorage, getPackagesFromLocalStorage, getPreviewLocale, setPreviewLocale, getResourceListFromLocalStorage } from './services/mockService';
+import { default as PortalRender } from './renderer';
+
 
 const getScenarioName = function () {
   if (location.search) {
@@ -19,82 +29,125 @@ const getScenarioName = function () {
 const SamplePreview = () => {
   const [data, setData] = useState({});
 
-  const [schema, setSchema] = useState()
-
   const [activeNav, setActiveNav] = useState()
 
   const scenarioName = getScenarioName();
 
-  async function init() {
-    const resourceList = await getResourceListFromLocalStorage(scenarioName);
-    const id = resourceList?.[0].id;
-    const packages = getPackagesFromLocalStorage(scenarioName, id);
-    const projectSchema = getProjectSchemaFromLocalStorage(scenarioName, id);
-    const {
-      componentsMap: componentsMapArray,
-      componentsTree,
-      i18n,
-      dataSource: projectDataSource,
-    } = projectSchema;
-    const componentsMap: any = {};
-    componentsMapArray.forEach((component: any) => {
-      componentsMap[component.componentName] = component;
-    });
-    const pageSchema = componentsTree[0];
+  const params = useParams();
+  const navigate = useNavigate();
+  
+  const {page} = params;
 
-    const libraryMap = {};
-    const libraryAsset = [];
-    packages.forEach(({ package: _package, library, urls, renderUrls }) => {
-      libraryMap[_package] = library;
-      if (renderUrls) {
-        libraryAsset.push(renderUrls);
-      } else if (urls) {
-        libraryAsset.push(urls);
+  console.log('SamplePreview==== start ====, page:  ', page)
+
+  useEffect(() => {
+    async function getData() {
+      console.log('in preview effect========');
+      const resourceList = await getResourceListFromLocalStorage(scenarioName);
+      if (!page && resourceList?.length) {
+        navigate(`${resourceList[0]?.id || ''}`)
       }
-    });
-
-    const vendors = [assetBundle(libraryAsset, AssetLevel.Library)];
-
-    // TODO asset may cause pollution
-    const assetLoader = new AssetLoader();
-    await assetLoader.load(libraryAsset);
-    const components = await injectComponents(buildComponents(libraryMap, componentsMap));
-
-    setSchema(pageSchema);
-
-    console.log('id', id, resourceList);
-    setActiveNav(id);
-
-    setData({
-      // schema: pageSchema,
-      components,
-      i18n,
-      projectDataSource,
-      resourceList,
-    });
-  }
-
-  const { components, i18n = {}, projectDataSource = {} } = data as any;
-
-  if (!schema || !components) {
-    init();
-    return <Loading fullScreen />;
-  }
-  const currentLocale = getPreviewLocale(getScenarioName());
-
-  if (!(window as any).setPreviewLocale) {
-    // for demo use only, can use this in console to switch language for i18n test
-    // 在控制台 window.setPreviewLocale('en-US') 或 window.setPreviewLocale('zh-CN') 查看切换效果
-    (window as any).setPreviewLocale = (locale:string) => setPreviewLocale(getScenarioName(), locale);
-  }
-
-  function customizer(objValue: [], srcValue: []) {
-    if (isArray(objValue)) {
-      return objValue.concat(srcValue || []);
+      setData({
+        resourceList,
+      });
     }
-  }
+    getData();
+  }, []);
+  // setActiveNav(`${page}`);
+  // async function init() {
+  //   console.log('SamplePreview init funciton ========')
+  //   const resourceList = await getResourceListFromLocalStorage(scenarioName);
+  //   if (!page && resourceList?.length) {
+  //     navigate(`${resourceList[0]?.id || ''}`);
+  //   }
 
-  console.log('activeNav', activeNav);
+  //   const id = page || resourceList?.[0].id;
+  //   const packages = getPackagesFromLocalStorage(scenarioName, id);
+  //   const projectSchema = getProjectSchemaFromLocalStorage(scenarioName, id);
+  //   const {
+  //     componentsMap: componentsMapArray,
+  //     componentsTree,
+  //     i18n,
+  //     dataSource: projectDataSource,
+  //   } = projectSchema;
+  //   const componentsMap: any = {};
+  //   componentsMapArray.forEach((component: any) => {
+  //     componentsMap[component.componentName] = component;
+  //   });
+  //   const pageSchema = componentsTree[0];
+
+  //   const libraryMap = {};
+  //   const libraryAsset = [];
+  //   packages.forEach(({ package: _package, library, urls, renderUrls }) => {
+  //     libraryMap[_package] = library;
+  //     if (renderUrls) {
+  //       libraryAsset.push(renderUrls);
+  //     } else if (urls) {
+  //       libraryAsset.push(urls);
+  //     }
+  //   });
+
+  //   const vendors = [assetBundle(libraryAsset, AssetLevel.Library)];
+
+  //   // TODO asset may cause pollution
+  //   const assetLoader = new AssetLoader();
+  //   await assetLoader.load(libraryAsset);
+  //   const components = await injectComponents(buildComponents(libraryMap, componentsMap));
+
+  //   try {
+  //     setSchema(pageSchema);
+
+  //   } catch (e) {
+  //     console.log('exception', e)
+  //   }
+
+  //   console.log('id2', id, resourceList);
+  //   setActiveNav(id);
+
+  //   setData({
+  //     // schema: pageSchema,
+  //     components,
+  //     i18n,
+  //     projectDataSource,
+  //     resourceList,
+  //   });
+  // }
+
+
+  // const { components, i18n = {}, projectDataSource = {} } = data as any;
+
+  // if (!schema || !components) {
+  //   init();
+  //   return <Loading fullScreen />;
+  // } else {
+  //   console.log('not init========')
+  //   const aaa = getProjectSchemaFromLocalStorage(scenarioName, `${page}`);
+  //   console.log('old schema is: ', schema);
+  //   console.log('new schema is : ', aaa?.componentsTree[0])
+  //   try {
+  //     setSchema(aaa?.componentsTree[0]);
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  //   console.log('after set')
+  //   // setActiveNav(page);
+  // }
+
+  // const currentLocale = getPreviewLocale(getScenarioName());
+
+  // if (!(window as any).setPreviewLocale) {
+  //   // for demo use only, can use this in console to switch language for i18n test
+  //   // 在控制台 window.setPreviewLocale('en-US') 或 window.setPreviewLocale('zh-CN') 查看切换效果
+  //   (window as any).setPreviewLocale = (locale:string) => setPreviewLocale(getScenarioName(), locale);
+  // }
+
+  // function customizer(objValue: [], srcValue: []) {
+  //   if (isArray(objValue)) {
+  //     return objValue.concat(srcValue || []);
+  //   }
+  // }
+
+  console.log('activeNav====', activeNav);
 
   return (
     <div className="lowcode-plugin-sample-preview">
@@ -121,19 +174,15 @@ const SamplePreview = () => {
           <Nav
             embeddable
             aria-label="global navigation"
-            defaultSelectedKeys={[activeNav]}
+            selectedKeys={[page || data?.resourceList?.[0].id || '']}
           >
             {
               data?.resourceList?.map((d) => (
                 <Nav.Item
                   key={d.id}
-                  onClick={() => {
-                    const projectSchema = getProjectSchemaFromLocalStorage(scenarioName, d.id);
-                    console.log('setSchema', d.id, projectSchema?.componentsTree[0]);
-                    setSchema(projectSchema?.componentsTree[0])
-                  }}
+                 
                   icon="account"
-                >{d.title}</Nav.Item>
+                ><Link to={`/${d.id}`}>{d.title}</Link></Nav.Item>
               ))
             }
           </Nav>
@@ -141,17 +190,7 @@ const SamplePreview = () => {
 
         <Shell.Content>
           <div style={{ minHeight: 1200, background: "#fff" }}>
-          <ReactRenderer
-            className="lowcode-plugin-sample-preview-content"
-            schema={{
-              ...schema,
-              dataSource: mergeWith(schema.dataSource, projectDataSource, customizer),
-            }}
-            components={components}
-            locale={currentLocale}
-            messages={i18n}
-            appHelper={appHelper}
-          />
+            <PortalRender page={page} /> 
           </div>
         </Shell.Content>
       </Shell>
@@ -159,4 +198,9 @@ const SamplePreview = () => {
   );
 };
 
-ReactDOM.render(<SamplePreview />, document.getElementById('ice-container'));
+ReactDOM.render(<Router>
+  <Routes>
+    <Route path={`/`} element={<SamplePreview />} />
+    <Route path={`/:page`} element={<SamplePreview />} />
+  </Routes>
+</Router>, document.getElementById('ice-container'));
